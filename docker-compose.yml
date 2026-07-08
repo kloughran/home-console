@@ -1,0 +1,12 @@
+services:
+  home-console:
+    build: .
+    container_name: home-console
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      # All runtime config/secrets come from this file (loaded by dotenv at
+      # startup) — nothing is injected via compose or the pipeline.
+      - /media/container-storage/home-console/.env:/app/.env:ro
+      - /media/container-storage/home-console/data:/app/data
