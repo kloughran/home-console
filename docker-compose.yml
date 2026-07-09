@@ -1,3 +1,5 @@
+name: home-console
+
 services:
   home-console:
     build: .
