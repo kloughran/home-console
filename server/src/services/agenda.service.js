@@ -3,7 +3,7 @@
 import { listVisibleCalendars, listEventsForDay } from '../google/calendarApi.js';
 import { addDays } from '../time/schedule.js';
 
-const CACHE_TTL_MS = 5 * 60_000;
+const CACHE_TTL_MS = 60_000; // match the tasks store's refresh cadence
 let cache = null; // { events, fetchedAt }
 
 // Pure merge/sort: all-day events first (calendar order preserved), then
