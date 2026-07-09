@@ -58,6 +58,33 @@ export type CommandLogEntry = {
   created_at: string;
 };
 
+export type AgendaEvent = {
+  id: string;
+  title: string;
+  start: string; // ISO datetime, or YYYY-MM-DD for all-day
+  end: string | null;
+  allDay: boolean;
+  calendar: string;
+  color: string | null;
+};
+
+export type WeatherKind = 'sun' | 'cloud' | 'rain' | 'snow' | 'storm' | 'fog';
+
+export type WeatherReport = {
+  current: {
+    temp: number;
+    feelsLike: number;
+    wind: number;
+    label: string;
+    kind: WeatherKind;
+  };
+  today: {
+    hi: number;
+    lo: number;
+    precipChance: number;
+  };
+};
+
 // Inputs for create/update mutations.
 
 export type TaskInput = {

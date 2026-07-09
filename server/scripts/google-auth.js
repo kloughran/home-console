@@ -28,7 +28,7 @@ const authUrl =
     client_id: clientId,
     redirect_uri: REDIRECT,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/tasks',
+    scope: 'https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/calendar.readonly',
     access_type: 'offline',
     prompt: 'consent',
   });

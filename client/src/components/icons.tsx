@@ -103,6 +103,83 @@ export const TouchIcon = ({ className = 'w-4 h-4' }: IconProps) => (
   </svg>
 );
 
+// Weather icons, keyed by the server's WMO "kind".
+
+export const SunIcon = ({ className = 'w-4 h-4' }: IconProps) => (
+  <svg className={className} {...baseProps}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+    />
+  </svg>
+);
+
+export const CloudIcon = ({ className = 'w-4 h-4' }: IconProps) => (
+  <svg className={className} {...baseProps}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+    />
+  </svg>
+);
+
+export const RainIcon = ({ className = 'w-4 h-4' }: IconProps) => (
+  <svg className={className} {...baseProps}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 13a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 13zm5 6l-1 2m5-2l-1 2m5-2l-1 2"
+    />
+  </svg>
+);
+
+export const SnowIcon = ({ className = 'w-4 h-4' }: IconProps) => (
+  <svg className={className} {...baseProps}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 13a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 13zm5 6h.01M12 20h.01M16 19h.01"
+    />
+  </svg>
+);
+
+export const StormIcon = ({ className = 'w-4 h-4' }: IconProps) => (
+  <svg className={className} {...baseProps}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 13a4 4 0 004 4h2m7.9-.001A5 5 0 1016 7.001a5.002 5.002 0 10-9.78 2.095A4.001 4.001 0 003 13zm10-2l-3 5h4l-3 5"
+    />
+  </svg>
+);
+
+export const FogIcon = ({ className = 'w-4 h-4' }: IconProps) => (
+  <svg className={className} {...baseProps}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 10a4 4 0 014-4 5 5 0 019.58 1.001A5 5 0 0121 11.9M4 15h16M6 18h12M8 21h8"
+    />
+  </svg>
+);
+
+export const WeatherIcon = ({ kind, className }: { kind: string; className?: string }) => {
+  if (kind === 'sun') return <SunIcon className={className} />;
+  if (kind === 'rain') return <RainIcon className={className} />;
+  if (kind === 'snow') return <SnowIcon className={className} />;
+  if (kind === 'storm') return <StormIcon className={className} />;
+  if (kind === 'fog') return <FogIcon className={className} />;
+  return <CloudIcon className={className} />;
+};
+
 export const ErrorIcon = ({ className = 'w-4 h-4' }: IconProps) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />

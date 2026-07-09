@@ -9,6 +9,8 @@ import commandsRoutes from './routes/commands.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import completionsRoutes from './routes/completions.routes.js';
 import commandLogRoutes from './routes/commandLog.routes.js';
+import agendaRoutes from './routes/agenda.routes.js';
+import weatherRoutes from './routes/weather.routes.js';
 
 export function createApp() {
   const app = express();
@@ -30,6 +32,8 @@ export function createApp() {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/completions', completionsRoutes);
   app.use('/api/command-log', commandLogRoutes);
+  app.use('/api/agenda', agendaRoutes);
+  app.use('/api/weather', weatherRoutes);
 
   // In the Docker image the built React client sits in ../public; in dev the
   // folder doesn't exist and Vite serves the client instead.
