@@ -1,30 +1,26 @@
 import { useAgenda } from './useAgenda';
 import { timeLabel } from '../../lib/format';
+import { eventEnd, eventState, isVisible, type EventState } from '../../lib/agendaState';
 import { Spinner } from '../../components/icons';
 import type { AgendaEvent } from '../../api/types';
 
-const RECENT_WINDOW_MS = 60 * 60_000;
+const ROW_TONES: Record<EventState, { row: string; time: string }> = {
+  ended: { row: '-mx-2 rounded-lg bg-purple-500/10 px-2 py-1', time: 'text-purple-300' },
+  active: { row: '-mx-2 rounded-lg bg-emerald-500/10 px-2 py-1', time: 'text-emerald-400' },
+  normal: { row: '', time: 'text-slate-500' },
+};
 
-// Timed events vanish an hour after they end; within that hour they linger
-// with a highlight. All-day events always show.
-function eventEnd(event: AgendaEvent): Date {
-  return new Date(event.end ?? event.start);
+function timeText(event: AgendaEvent, state: EventState): string {
+  if (event.allDay) return 'All day';
+  if (state === 'ended') return `Ended ${timeLabel(String(eventEnd(event)))}`;
+  if (state === 'active') return `Until ${timeLabel(String(eventEnd(event)))}`;
+  return timeLabel(event.start);
 }
 
-function isVisible(event: AgendaEvent, now: Date): boolean {
-  if (event.allDay) return true;
-  return eventEnd(event).getTime() >= now.getTime() - RECENT_WINDOW_MS;
-}
-
-function hasEnded(event: AgendaEvent, now: Date): boolean {
-  return !event.allDay && eventEnd(event) < now;
-}
-
-function EventRow({ event, ended }: { event: AgendaEvent; ended: boolean }) {
+function EventRow({ event, state }: { event: AgendaEvent; state: EventState }) {
+  const tone = ROW_TONES[state];
   return (
-    <div
-      className={`flex items-start gap-2.5 ${ended ? '-mx-2 rounded-lg bg-amber-500/10 px-2 py-1' : ''}`}
-    >
+    <div className={`flex items-start gap-2.5 ${tone.row}`}>
       <span
         className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
         style={{ backgroundColor: event.color ?? '#64748b' }}
@@ -32,13 +28,7 @@ function EventRow({ event, ended }: { event: AgendaEvent; ended: boolean }) {
       />
       <div className="min-w-0 flex-1">
         <div className="truncate">{event.title}</div>
-        <div className={`text-xs ${ended ? 'text-amber-400' : 'text-slate-500'}`}>
-          {event.allDay
-            ? 'All day'
-            : ended
-              ? `Ended ${timeLabel(String(eventEnd(event)))}`
-              : timeLabel(event.start)}
-        </div>
+        <div className={`text-xs ${tone.time}`}>{timeText(event, state)}</div>
       </div>
     </div>
   );
@@ -73,7 +63,7 @@ export default function AgendaCard() {
       {visible.length > 0 && (
         <div className="space-y-2.5">
           {visible.map((event) => (
-            <EventRow key={`${event.calendar}-${event.id}`} event={event} ended={hasEnded(event, now)} />
+            <EventRow key={`${event.calendar}-${event.id}`} event={event} state={eventState(event, now)} />
           ))}
         </div>
       )}
