@@ -402,7 +402,8 @@ export async function ping() {
 }
 
 // Keeps voice entries flowing into the console even when nobody is watching it.
-export function startBackgroundRefresh() {
+// `onRefresh(tasks)` runs after each successful tick with the fresh shaped tasks.
+export function startBackgroundRefresh(onRefresh) {
   if (!isConfigured()) {
     console.warn(
       'Google Tasks not configured (GOOGLE_CLIENT_ID/SECRET unset or tokens file missing) — the console has no data source until scripts/google-auth.js is run.'
@@ -410,7 +411,14 @@ export function startBackgroundRefresh() {
     return null;
   }
   const interval = Number(process.env.GOOGLE_POLL_INTERVAL_MS) || 60_000;
-  const tick = () => refresh(true).catch((err) => console.error('background refresh failed:', err.message));
+  const tick = () =>
+    refresh(true)
+      .then((c) =>
+        Promise.resolve(onRefresh?.(c.tasks)).catch((err) =>
+          console.error('post-refresh hook failed:', err.message)
+        )
+      )
+      .catch((err) => console.error('background refresh failed:', err.message));
   tick();
   console.log(`Google Tasks store started: list "${listName()}", refresh every ${interval / 1000}s`);
   return setInterval(tick, interval);

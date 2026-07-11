@@ -31,6 +31,25 @@ Voice usage from any Google Home speaker — no special phrasing needed:
 - *"Hey Google, add 'water my coleus every other day at 9am' to my tasks"* → recurring console task
 - *"Hey Google, add 'I watered my coleus' to my tasks"* → completes the task
 
+## Task pokes (ntfy)
+
+When a recurring task is due or overdue, the server pushes one summary notification
+("2 tasks waiting — • Water plants (overdue 1 day) …") to a private [ntfy](https://ntfy.sh)
+topic, and repeats every 2 hours until the tasks are completed — weekdays 9:00–17:00
+server-local time only. Weekend-due tasks stay silent until Monday morning. Tapping the
+notification opens the console. Setup: install the ntfy app on your phone, subscribe to a
+long random topic name, and set `NTFY_TOPIC` to it.
+
+| Env var | Default | What |
+|---|---|---|
+| `NTFY_TOPIC` | *(unset)* | **Master switch** — unset disables pokes entirely |
+| `NTFY_SERVER` | `https://ntfy.sh` | Override for a self-hosted ntfy |
+| `POKE_INTERVAL_MS` | `7200000` (2h) | Re-poke cadence while tasks stay pending |
+| `POKE_WINDOW_START` / `POKE_WINDOW_END` | `09:00` / `17:00` | Inclusive window, server-local time |
+| `POKE_DAYS` | `mon,tue,wed,thu,fri` | Days that poke (same day keys as `[hc]` lines) |
+| `CONSOLE_URL` | *(unset)* | Sent as the ntfy `Click` header (tap-to-open) |
+| `POKE_STATE_PATH` | `./data/poke-state.json` | Last-sent timestamp, survives restarts |
+
 ## Stack
 
 | Piece | Tech |
@@ -64,4 +83,5 @@ resets with the server).
 Notes: all day-boundary math runs in the Node process (`TZ=America/Chicago` in the
 container); the store caches Google reads for ~20s and background-refreshes every 60s,
 so voice entries appear within a minute. If the internet is down the console has no
-data source until connectivity returns.
+data source until connectivity returns. Poke state (`poke-state.json`) lives in `data/`
+alongside `google-tokens.json`.
