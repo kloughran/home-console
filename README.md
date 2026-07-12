@@ -49,6 +49,20 @@ long random topic name, and set `NTFY_TOPIC` to it.
 | `POKE_DAYS` | `mon,tue,wed,thu,fri` | Days that poke (same day keys as `[hc]` lines) |
 | `CONSOLE_URL` | *(unset)* | Sent as the ntfy `Click` header (tap-to-open) |
 | `POKE_STATE_PATH` | `./data/poke-state.json` | Last-sent timestamp, survives restarts |
+| `POKE_LINES_PATH` | `./data/poke-lines.json` | Optional trash-talk file (below); absent = plain pokes |
+
+Optionally, drop a `poke-lines.json` in `data/` (gitignored — the repo ships no phrases)
+to replace the plain format with escalating trash-talk. The tier is chosen by the
+most-overdue pending task (largest `minDays` ≤ its overdue days); a random title and
+line are drawn from it and the ntfy priority ramps with it. Edits are picked up on the
+next tick, no restart needed. Example:
+
+```json
+{ "tiers": [
+  { "minDays": 0, "priority": "default", "titles": ["Chores await"], "insults": ["Move it — these won't do themselves."] },
+  { "minDays": 1, "priority": "high", "titles": ["Still not done"], "insults": ["It has been a whole day. Hop to it."] }
+] }
+```
 
 ## Stack
 

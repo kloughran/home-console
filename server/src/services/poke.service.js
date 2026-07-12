@@ -7,8 +7,10 @@ import { decidePoke } from '../time/poke.js';
 let lastSentAt; // undefined = not yet loaded from disk; Date | null after
 let warnedDisabled = false;
 let warnedWriteFailed = false;
+let warnedBadLines = false;
 
 const statePath = () => process.env.POKE_STATE_PATH || './data/poke-state.json';
+const linesPath = () => process.env.POKE_LINES_PATH || './data/poke-lines.json';
 
 export function isPokeConfigured() {
   return Boolean(process.env.NTFY_TOPIC);
@@ -21,6 +23,32 @@ function pokeConfig() {
     end: process.env.POKE_WINDOW_END || '17:00',
     intervalMs: Number(process.env.POKE_INTERVAL_MS) || 7_200_000,
   };
+}
+
+// Optional trash-talk phrase file; missing = plain notifications (the normal
+// case), malformed = warn once and stay plain. Re-read each tick so edits land
+// without a restart.
+function loadPokeLines() {
+  let text;
+  try {
+    text = fs.readFileSync(linesPath(), 'utf8');
+  } catch {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed?.tiers) || !parsed.tiers.every((t) => Array.isArray(t?.insults))) {
+      throw new Error('expected { tiers: [{ minDays, insults: [...] }] }');
+    }
+    warnedBadLines = false;
+    return parsed;
+  } catch (err) {
+    if (!warnedBadLines) {
+      console.warn(`poke lines file ignored (${err.message}) — using plain notifications`);
+      warnedBadLines = true;
+    }
+    return null;
+  }
 }
 
 function loadState() {
@@ -43,9 +71,9 @@ function saveState(sentAt) {
   }
 }
 
-async function sendNtfy({ title, message }) {
+async function sendNtfy({ title, message, priority }) {
   const server = process.env.NTFY_SERVER || 'https://ntfy.sh';
-  const headers = { Title: title, Priority: 'default', Tags: 'house' };
+  const headers = { Title: title, Priority: priority || 'default', Tags: 'house' };
   if (process.env.CONSOLE_URL) headers.Click = process.env.CONSOLE_URL;
   const res = await fetch(`${server}/${process.env.NTFY_TOPIC}`, {
     method: 'POST',
@@ -65,7 +93,7 @@ export async function runPokeCheck(tasks, now = new Date()) {
     return;
   }
   if (lastSentAt === undefined) lastSentAt = loadState();
-  const decision = decidePoke({ now, tasks, lastSentAt, config: pokeConfig() });
+  const decision = decidePoke({ now, tasks, lastSentAt, config: pokeConfig(), lines: loadPokeLines() });
   if (!decision.send) return;
   await sendNtfy(decision); // advance lastSentAt only on success → failed sends retry next tick
   lastSentAt = now;

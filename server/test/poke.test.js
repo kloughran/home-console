@@ -127,3 +127,79 @@ test('message lines show due time today and overdue days', () => {
     '• Clean litter box (overdue 2 days)',
   ]);
 });
+
+// ---------- poke lines (trash-talk tiers) ----------
+
+const LINES = {
+  tiers: [
+    { minDays: 0, priority: 'default', titles: ['T0a', 'T0b'], insults: ['I0a', 'I0b'] },
+    { minDays: 1, priority: 'high', titles: ['T1'], insults: ['I1'] },
+    { minDays: 3, priority: 'urgent', titles: ['T3'], insults: ['I3'] },
+  ],
+};
+const first = () => 0;
+const last = () => 0.999;
+
+test('due-today tasks draw from tier 0 with its priority', () => {
+  const out = formatPokeMessage([task()], NOW, LINES, first);
+  assert.deepEqual(out, { title: 'T0a', message: 'I0a\n\n• Water plants (due 9:00 AM)', priority: 'default' });
+});
+
+test('rng picks across the tier lists', () => {
+  const out = formatPokeMessage([task()], NOW, LINES, last);
+  assert.equal(out.title, 'T0b');
+  assert.match(out.message, /^I0b\n\n/);
+});
+
+test('tier escalates with the most-overdue pending task', () => {
+  const twoDays = formatPokeMessage([task({ next_due_at: local(2026, 7, 6, 9) })], NOW, LINES, first);
+  assert.equal(twoDays.title, 'T1');
+  assert.equal(twoDays.priority, 'high');
+
+  const mixed = formatPokeMessage(
+    [task(), task({ title: 'Take out trash', next_due_at: local(2026, 7, 4, 9) })], // due today + 4 days over
+    NOW,
+    LINES,
+    first
+  );
+  assert.equal(mixed.title, 'T3');
+  assert.equal(mixed.priority, 'urgent');
+  assert.deepEqual(mixed.message.split('\n'), [
+    'I3',
+    '',
+    '• Water plants (due 9:00 AM)',
+    '• Take out trash (overdue 4 days)',
+  ]);
+});
+
+test('decidePoke carries lines through to the sent payload', () => {
+  const decision = decidePoke({ now: NOW, tasks: [task()], lastSentAt: null, config: CONFIG, lines: LINES, rng: first });
+  assert.equal(decision.send, true);
+  assert.equal(decision.title, 'T0a');
+  assert.equal(decision.priority, 'default');
+});
+
+test('null or malformed lines fall back to the plain format', () => {
+  const plain = formatPokeMessage([task()], NOW);
+  for (const bad of [null, {}, { tiers: 'x' }, { tiers: [{ priority: 'high' }] }]) {
+    assert.deepEqual(formatPokeMessage([task()], NOW, bad, first), plain);
+  }
+});
+
+test('tier without titles keeps the plain count title; without insults keeps plain bullets', () => {
+  const noTitles = formatPokeMessage([task()], NOW, { tiers: [{ minDays: 0, insults: ['I'] }] }, first);
+  assert.equal(noTitles.title, '1 task waiting');
+  assert.match(noTitles.message, /^I\n\n/);
+
+  const noInsults = formatPokeMessage([task()], NOW, { tiers: [{ minDays: 0, titles: ['T'] }] }, first);
+  assert.equal(noInsults.title, 'T');
+  assert.equal(noInsults.message, '• Water plants (due 9:00 AM)');
+});
+
+test('non-latin-1 title chars are stripped; empty result falls back', () => {
+  const emoji = formatPokeMessage([task()], NOW, { tiers: [{ minDays: 0, titles: ['DO 💢 IT'], insults: ['I'] }] }, first);
+  assert.equal(emoji.title, 'DO  IT');
+
+  const allEmoji = formatPokeMessage([task()], NOW, { tiers: [{ minDays: 0, titles: ['💢💢'], insults: ['I'] }] }, first);
+  assert.equal(allEmoji.title, '1 task waiting');
+});

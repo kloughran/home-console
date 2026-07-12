@@ -44,26 +44,59 @@ function timeLabel(d) {
   return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`;
 }
 
-// Title must stay ASCII — it travels in an HTTP header (latin-1); task titles
-// with arbitrary UTF-8 go in the message body.
-export function formatPokeMessage(pending, now) {
-  const title = `${pending.length} task${pending.length === 1 ? '' : 's'} waiting`;
-  const message = pending
+// Round, not floor: local day spans are 23/25h across DST.
+function overdueDays(t, now) {
+  return Math.round((localMidnight(now) - localMidnight(t.next_due_at)) / 86_400_000);
+}
+
+// Titles travel in an HTTP header (latin-1) — strip anything a hand-edited
+// lines file might sneak in that fetch would reject.
+function sanitizeTitle(s) {
+  return String(s).replace(/[^\x20-\x7e\xa0-\xff]/g, '').trim();
+}
+
+function pick(arr, rng) {
+  return Array.isArray(arr) && arr.length ? arr[Math.floor(rng() * arr.length)] : undefined;
+}
+
+// Angriest tier the most-overdue pending task qualifies for.
+function pickTier(lines, maxDays) {
+  if (!Array.isArray(lines?.tiers)) return null;
+  return lines.tiers
+    .filter((t) => typeof t?.minDays === 'number' && t.minDays <= maxDays)
+    .reduce((best, t) => (best && best.minDays >= t.minDays ? best : t), null);
+}
+
+// `lines` is an optional parsed poke-lines file ({ tiers: [{ minDays,
+// priority, titles, insults }] }); null or malformed falls back to the plain
+// count-and-bullets format.
+export function formatPokeMessage(pending, now, lines = null, rng = Math.random) {
+  const bullets = pending
     .map((t) => {
-      // Round, not floor: local day spans are 23/25h across DST.
-      const days = Math.round((localMidnight(now) - localMidnight(t.next_due_at)) / 86_400_000);
+      const days = overdueDays(t, now);
       const when =
         days > 0 ? `overdue ${days} day${days === 1 ? '' : 's'}` : `due ${timeLabel(t.next_due_at)}`;
       return `• ${t.title} (${when})`;
     })
     .join('\n');
-  return { title, message };
+  const plainTitle = `${pending.length} task${pending.length === 1 ? '' : 's'} waiting`;
+
+  const tier = pickTier(lines, Math.max(...pending.map((t) => overdueDays(t, now))));
+  if (!tier) return { title: plainTitle, message: bullets };
+
+  const title = sanitizeTitle(pick(tier.titles, rng) ?? '') || plainTitle;
+  const insult = pick(tier.insults, rng);
+  return {
+    title,
+    message: insult ? `${insult}\n\n${bullets}` : bullets,
+    priority: tier.priority,
+  };
 }
 
-export function decidePoke({ now, tasks, lastSentAt, config }) {
+export function decidePoke({ now, tasks, lastSentAt, config, lines = null, rng = Math.random }) {
   if (!inPokeWindow(now, config)) return { send: false, reason: 'outside-window' };
   const pending = pendingRecurringTasks(tasks, now);
   if (pending.length === 0) return { send: false, reason: 'nothing-pending' };
   if (lastSentAt && now - lastSentAt < config.intervalMs) return { send: false, reason: 'too-soon' };
-  return { send: true, pending, ...formatPokeMessage(pending, now) };
+  return { send: true, pending, ...formatPokeMessage(pending, now, lines, rng) };
 }
