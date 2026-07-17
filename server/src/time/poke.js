@@ -88,7 +88,9 @@ export function formatPokeMessage(pending, now, lines = null, rng = Math.random)
   const insult = pick(tier.insults, rng);
   return {
     title,
-    message: insult ? `${insult}\n\n${bullets}` : bullets,
+    // Tasks first: the collapsed Android notification shows only the first
+    // line(s), and the chores are the part worth reading at a glance.
+    message: insult ? `${bullets}\n\n${insult}` : bullets,
     priority: tier.priority,
   };
 }

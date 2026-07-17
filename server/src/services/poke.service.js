@@ -74,7 +74,9 @@ function saveState(sentAt) {
 async function sendNtfy({ title, message, priority }) {
   const server = process.env.NTFY_SERVER || 'https://ntfy.sh';
   const headers = { Title: title, Priority: priority || 'default', Tags: 'house' };
-  if (process.env.CONSOLE_URL) headers.Click = process.env.CONSOLE_URL;
+  // Action button rather than a Click tap-through: tapping the notification
+  // should open it in the ntfy app (full text readable), not the console.
+  if (process.env.CONSOLE_URL) headers.Actions = `view, Open console, ${process.env.CONSOLE_URL}`;
   const res = await fetch(`${server}/${process.env.NTFY_TOPIC}`, {
     method: 'POST',
     headers,

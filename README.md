@@ -47,7 +47,7 @@ long random topic name, and set `NTFY_TOPIC` to it.
 | `POKE_INTERVAL_MS` | `7200000` (2h) | Re-poke cadence while tasks stay pending |
 | `POKE_WINDOW_START` / `POKE_WINDOW_END` | `09:00` / `17:00` | Inclusive window, server-local time |
 | `POKE_DAYS` | `mon,tue,wed,thu,fri` | Days that poke (same day keys as `[hc]` lines) |
-| `CONSOLE_URL` | *(unset)* | Sent as the ntfy `Click` header (tap-to-open) |
+| `CONSOLE_URL` | *(unset)* | Shown as an "Open console" action button on the notification |
 | `POKE_STATE_PATH` | `./data/poke-state.json` | Last-sent timestamp, survives restarts |
 | `POKE_LINES_PATH` | `./data/poke-lines.json` | Optional trash-talk file (below); absent = plain pokes |
 

@@ -140,15 +140,15 @@ const LINES = {
 const first = () => 0;
 const last = () => 0.999;
 
-test('due-today tasks draw from tier 0 with its priority', () => {
+test('due-today tasks draw from tier 0 with its priority, tasks first', () => {
   const out = formatPokeMessage([task()], NOW, LINES, first);
-  assert.deepEqual(out, { title: 'T0a', message: 'I0a\n\n• Water plants (due 9:00 AM)', priority: 'default' });
+  assert.deepEqual(out, { title: 'T0a', message: '• Water plants (due 9:00 AM)\n\nI0a', priority: 'default' });
 });
 
 test('rng picks across the tier lists', () => {
   const out = formatPokeMessage([task()], NOW, LINES, last);
   assert.equal(out.title, 'T0b');
-  assert.match(out.message, /^I0b\n\n/);
+  assert.match(out.message, /\n\nI0b$/);
 });
 
 test('tier escalates with the most-overdue pending task', () => {
@@ -165,10 +165,10 @@ test('tier escalates with the most-overdue pending task', () => {
   assert.equal(mixed.title, 'T3');
   assert.equal(mixed.priority, 'urgent');
   assert.deepEqual(mixed.message.split('\n'), [
-    'I3',
-    '',
     '• Water plants (due 9:00 AM)',
     '• Take out trash (overdue 4 days)',
+    '',
+    'I3',
   ]);
 });
 
@@ -189,7 +189,7 @@ test('null or malformed lines fall back to the plain format', () => {
 test('tier without titles keeps the plain count title; without insults keeps plain bullets', () => {
   const noTitles = formatPokeMessage([task()], NOW, { tiers: [{ minDays: 0, insults: ['I'] }] }, first);
   assert.equal(noTitles.title, '1 task waiting');
-  assert.match(noTitles.message, /^I\n\n/);
+  assert.match(noTitles.message, /\n\nI$/);
 
   const noInsults = formatPokeMessage([task()], NOW, { tiers: [{ minDays: 0, titles: ['T'] }] }, first);
   assert.equal(noInsults.title, 'T');
