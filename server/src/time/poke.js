@@ -38,6 +38,27 @@ function localMidnight(d) {
   return copy;
 }
 
+function sameLocalDay(a, b) {
+  return localMidnight(a).getTime() === localMidnight(b).getTime();
+}
+
+const LONG_WINDOW_DAYS = 7;
+
+export function isLongWindow(t) {
+  return t.recurrence_type === 'interval' && (t.interval_days ?? 0) > LONG_WINDOW_DAYS;
+}
+
+// One long-window chore per day: completing any chore with an interval over a
+// week silences the remaining long-window chores until tomorrow. The logged
+// completion copy loses its [hc] schedule line, so the interval is read off
+// the successor task that shares the completion's title.
+export function longWindowDoneToday(completions, tasks, now) {
+  const longTitles = new Set(tasks.filter(isLongWindow).map((t) => t.title));
+  return completions.some(
+    (c) => c.recurring && sameLocalDay(c.completed_at, now) && longTitles.has(c.title)
+  );
+}
+
 function timeLabel(d) {
   const h = d.getHours() % 12 || 12;
   const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
@@ -95,9 +116,12 @@ export function formatPokeMessage(pending, now, lines = null, rng = Math.random)
   };
 }
 
-export function decidePoke({ now, tasks, lastSentAt, config, lines = null, rng = Math.random }) {
+export function decidePoke({ now, tasks, completions = [], lastSentAt, config, lines = null, rng = Math.random }) {
   if (!inPokeWindow(now, config)) return { send: false, reason: 'outside-window' };
-  const pending = pendingRecurringTasks(tasks, now);
+  let pending = pendingRecurringTasks(tasks, now);
+  if (longWindowDoneToday(completions, tasks, now)) {
+    pending = pending.filter((t) => !isLongWindow(t));
+  }
   if (pending.length === 0) return { send: false, reason: 'nothing-pending' };
   if (lastSentAt && now - lastSentAt < config.intervalMs) return { send: false, reason: 'too-soon' };
   return { send: true, pending, ...formatPokeMessage(pending, now, lines, rng) };

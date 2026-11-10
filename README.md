@@ -36,7 +36,9 @@ Voice usage from any Google Home speaker — no special phrasing needed:
 When a recurring task is due or overdue, the server pushes one summary notification
 ("2 tasks waiting — • Water plants (overdue 1 day) …") to a private [ntfy](https://ntfy.sh)
 topic, and repeats every 2 hours until the tasks are completed — weekdays 9:00–17:00
-server-local time only. Weekend-due tasks stay silent until Monday morning. Tapping the
+server-local time only. Weekend-due tasks stay silent until Monday morning. One big
+chore per day: after any chore with an interval over a week is completed, the other
+over-a-week chores are left out of pokes until the next day. Tapping the
 notification opens the console. Setup: install the ntfy app on your phone, subscribe to a
 long random topic name, and set `NTFY_TOPIC` to it.
 

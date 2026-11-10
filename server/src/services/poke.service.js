@@ -85,8 +85,9 @@ async function sendNtfy({ title, message, priority }) {
   if (!res.ok) throw new Error(`ntfy ${res.status}: ${await res.text().catch(() => '')}`);
 }
 
-// Called from the background refresh tick with freshly fetched shaped tasks.
-export async function runPokeCheck(tasks, now = new Date()) {
+// Called from the background refresh tick with freshly fetched shaped tasks
+// and recent completions.
+export async function runPokeCheck(tasks, completions = [], now = new Date()) {
   if (!isPokeConfigured()) {
     if (!warnedDisabled) {
       console.log('NTFY_TOPIC unset — task poking disabled');
@@ -95,7 +96,7 @@ export async function runPokeCheck(tasks, now = new Date()) {
     return;
   }
   if (lastSentAt === undefined) lastSentAt = loadState();
-  const decision = decidePoke({ now, tasks, lastSentAt, config: pokeConfig(), lines: loadPokeLines() });
+  const decision = decidePoke({ now, tasks, completions, lastSentAt, config: pokeConfig(), lines: loadPokeLines() });
   if (!decision.send) return;
   await sendNtfy(decision); // advance lastSentAt only on success → failed sends retry next tick
   lastSentAt = now;

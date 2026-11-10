@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { inPokeWindow, pendingRecurringTasks, formatPokeMessage, decidePoke } from '../src/time/poke.js';
+import {
+  inPokeWindow,
+  pendingRecurringTasks,
+  formatPokeMessage,
+  decidePoke,
+  isLongWindow,
+  longWindowDoneToday,
+} from '../src/time/poke.js';
 
 // Wednesday, July 8 2026, noon local time
 const NOW = new Date(2026, 6, 8, 12, 0, 0);
@@ -100,6 +107,70 @@ test('lastSentAt revived from persisted ISO string still counts', () => {
   const revived = new Date(local(2026, 7, 8, 11, 30).toISOString()); // restart 30min after a send
   const decision = decidePoke({ now: NOW, tasks: [task()], lastSentAt: revived, config: CONFIG });
   assert.equal(decision.reason, 'too-soon');
+});
+
+// ---------- long-window daily cap ----------
+
+// Overdue long-window chore (interval > 7 days)
+const gutters = () => task({ title: 'Clean gutters', interval_days: 14, next_due_at: local(2026, 7, 1, 9) });
+// Successor of a long-window chore completed earlier today — due far in the future
+const mowSuccessor = () => task({ title: 'Mow lawn', interval_days: 14, next_due_at: local(2026, 7, 22, 9) });
+const mowedToday = () => ({ id: 'c1', title: 'Mow lawn', completed_at: local(2026, 7, 8, 10), recurring: true });
+
+test('isLongWindow: over a week only, interval type only', () => {
+  assert.equal(isLongWindow(task({ interval_days: 8 })), true);
+  assert.equal(isLongWindow(task({ interval_days: 7 })), false);
+  assert.equal(isLongWindow(task({ recurrence_type: 'weekly', interval_days: null, days_of_week: 'mon' })), false);
+});
+
+test('completing a long-window chore silences other long-window chores for the day', () => {
+  const decision = decidePoke({
+    now: NOW,
+    tasks: [mowSuccessor(), gutters()],
+    completions: [mowedToday()],
+    lastSentAt: null,
+    config: CONFIG,
+  });
+  assert.deepEqual(decision, { send: false, reason: 'nothing-pending' });
+});
+
+test('short-cadence chores still poke after a long-window completion', () => {
+  const decision = decidePoke({
+    now: NOW,
+    tasks: [mowSuccessor(), gutters(), task()],
+    completions: [mowedToday()],
+    lastSentAt: null,
+    config: CONFIG,
+  });
+  assert.equal(decision.send, true);
+  assert.match(decision.message, /Water plants/);
+  assert.doesNotMatch(decision.message, /Clean gutters/);
+});
+
+test('a long-window completion from yesterday does not suppress today', () => {
+  const decision = decidePoke({
+    now: NOW,
+    tasks: [mowSuccessor(), gutters()],
+    completions: [{ ...mowedToday(), completed_at: local(2026, 7, 7, 10) }],
+    lastSentAt: null,
+    config: CONFIG,
+  });
+  assert.equal(decision.send, true);
+  assert.match(decision.message, /Clean gutters/);
+});
+
+test('completing a short-cadence chore does not suppress long-window chores', () => {
+  const completions = [{ id: 'c2', title: 'Water plants', completed_at: local(2026, 7, 8, 10), recurring: true }];
+  const tasks = [task({ next_due_at: local(2026, 7, 10, 9) }), gutters()];
+  assert.equal(longWindowDoneToday(completions, tasks, NOW), false);
+  const decision = decidePoke({ now: NOW, tasks, completions, lastSentAt: null, config: CONFIG });
+  assert.equal(decision.send, true);
+  assert.match(decision.message, /Clean gutters/);
+});
+
+test('a non-recurring completion with a matching title does not suppress', () => {
+  const tasks = [mowSuccessor(), gutters()];
+  assert.equal(longWindowDoneToday([{ ...mowedToday(), recurring: false }], tasks, NOW), false);
 });
 
 // ---------- formatPokeMessage ----------

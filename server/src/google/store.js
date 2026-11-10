@@ -402,7 +402,8 @@ export async function ping() {
 }
 
 // Keeps voice entries flowing into the console even when nobody is watching it.
-// `onRefresh(tasks)` runs after each successful tick with the fresh shaped tasks.
+// `onRefresh(tasks, completions)` runs after each successful tick with the
+// fresh shaped tasks and recent completions.
 export function startBackgroundRefresh(onRefresh) {
   if (!isConfigured()) {
     console.warn(
@@ -414,7 +415,7 @@ export function startBackgroundRefresh(onRefresh) {
   const tick = () =>
     refresh(true)
       .then((c) =>
-        Promise.resolve(onRefresh?.(c.tasks)).catch((err) =>
+        Promise.resolve(onRefresh?.(c.tasks, c.completions)).catch((err) =>
           console.error('post-refresh hook failed:', err.message)
         )
       )
